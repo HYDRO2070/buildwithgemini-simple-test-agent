@@ -1,4 +1,4 @@
-name: simple-test-agent
+name: culpeper-herbalist-agent
 acli_version: 1.1.0
 agent_directory: app
 region: us-east1

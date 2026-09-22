@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Culpeper Herbalist AI</title>
+<!-- Google Fonts & Material Symbols -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
+
+<style>
+  :root {
+    --bg-dark: #131314;
+    --surface-dark: #1e1f20;
+    --surface-card: #282a2c;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --text-primary: #e3e2e6;
+    --text-secondary: #c4c6d0;
+    --text-muted: #8e919e;
+    --accent-blue: #a8c7fa;
+    --accent-gradient: linear-gradient(135deg, #a8c7fa 0%, #7c4dff 50%, #f43f5e 100%);
+    --gemini-glow: linear-gradient(90deg, #4285f4, #9b51e0, #e91e63, #4285f4);
+    --user-bubble: #282a2c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* --- Header --- */
+  header {
+    background: rgba(19, 19, 20, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.85rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+  }
+
+  .sparkle-icon {
+    width: 28px;
+    height: 28px;
+    background: var(--gemini-glow);
+    background-size: 300% 300%;
+    animation: geminiShift 6s ease infinite;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z'/%3E%3C/svg%3E") no-repeat center / contain;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z'/%3E%3C/svg%3E") no-repeat center / contain;
+  }
+
+  .brand-title {
+    background: linear-gradient(90deg, #d3e3fd 0%, #a8c7fa 50%, #c8b6ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: var(--surface-dark);
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: #34d399;
+    box-shadow: 0 0 8px #34d399;
+  }
+
+  /* --- Chat Log --- */
+  #log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 1rem;
+    max-width: 840px;
+    width: 100%;
+    margin: 0 auto;
+    scroll-behavior: smooth;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  #log::-webkit-scrollbar { width: 6px; }
+  #log::-webkit-scrollbar-track { background: transparent; }
+  #log::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+  #log::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+  .msg {
+    display: flex;
+    gap: 0.85rem;
+    animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  .msg.user {
+    justify-content: flex-end;
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .avatar.ai {
+    background: var(--gemini-glow);
+    background-size: 200% 200%;
+    animation: geminiShift 8s ease infinite;
+    color: #fff;
+  }
+
+  .avatar.ai .material-symbols-outlined {
+    font-size: 18px;
+  }
+
+  .bubble {
+    max-width: 85%;
+    padding: 0.9rem 1.25rem;
+    border-radius: 18px;
+    background: var(--surface-dark);
+    border: 1px solid var(--border-color);
+    line-height: 1.6;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  .msg.user .bubble {
+    background: var(--user-bubble);
+    border-top-right-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .msg.agent .bubble {
+    border-top-left-radius: 4px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0.2rem 0;
+    width: 100%;
+  }
+
+  .bubble.rich {
+    background: transparent;
+    border: none;
+    padding: 0;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  /* --- Gemini Sparkle Loading Wave Animation --- */
+  .gemini-loader {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+  }
+
+  .loader-sparkle {
+    width: 24px;
+    height: 24px;
+    background: var(--gemini-glow);
+    background-size: 300% 300%;
+    animation: geminiShift 3s ease infinite, pulseGlow 1.5s ease-in-out infinite alternate;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z'/%3E%3C/svg%3E") no-repeat center / contain;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z'/%3E%3C/svg%3E") no-repeat center / contain;
+  }
+
+  .loader-shimmer {
+    height: 18px;
+    width: 220px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(168, 199, 250, 0.2) 50%, rgba(255,255,255,0.05) 100%);
+    background-size: 200% 100%;
+    animation: shimmerWave 1.8s infinite linear;
+  }
+
+  /* --- Example Prompts Row --- */
+  .example-prompts {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+  }
+
+  .example-prompts::-webkit-scrollbar { display: none; }
+
+  .prompt-chip {
+    background: var(--surface-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 0.5rem 0.95rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    outline: none;
+  }
+
+  .prompt-chip:hover {
+    background: var(--surface-card);
+    border-color: rgba(168, 199, 250, 0.4);
+    color: var(--text-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(66, 133, 244, 0.25);
+  }
+
+  .prompt-chip:active {
+    transform: scale(0.96);
+  }
+
+  .chip-icon {
+    font-size: 1rem;
+  }
+
+  /* --- Form / Input Area --- */
+  .input-container {
+    max-width: 840px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 1rem 1.25rem 1rem;
+  }
+
+  form {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--surface-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 28px;
+    padding: 0.4rem 0.5rem 0.4rem 1.2rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  form:focus-within {
+    border-color: rgba(168, 199, 250, 0.4);
+    box-shadow: 0 8px 30px rgba(66, 133, 244, 0.15);
+  }
+
+  input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+    padding: 0.6rem 0;
+  }
+
+  input::placeholder {
+    color: var(--text-muted);
+  }
+
+  button[type="submit"] {
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 50%;
+    background: var(--gemini-glow);
+    background-size: 200% 200%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  button[type="submit"]:hover {
+    transform: scale(1.08);
+  }
+
+  button[type="submit"]:active {
+    transform: scale(0.95);
+  }
+
+  button[type="submit"] .material-symbols-outlined {
+    font-size: 20px;
+  }
+
+  /* --- Modern A2UI Component Styles --- */
+  .a2card {
+    background: var(--surface-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 1.25rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    overflow: hidden;
+  }
+
+  .a2card:hover {
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+  }
+
+  .a2col { display: flex; flex-direction: column; gap: 0.75rem; }
+  .a2row { display: flex; flex-direction: row; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+  .a2row.between { justify-content: space-between; }
+
+  .a2text {
+    margin: 0;
+    line-height: 1.5;
+    color: var(--text-primary);
+  }
+
+  .a2text.a2-h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #f1f3f9;
+    letter-spacing: -0.02em;
+  }
+
+  .a2text.a2-h2 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+
+  .a2text.a2-h3 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #cbd5e1;
+  }
+
+  .a2text.a2-caption {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .a2divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 0.6rem 0;
+    width: 100%;
+  }
+
+  .a2img {
+    max-width: 100%;
+    border-radius: 14px;
+    display: block;
+    object-fit: cover;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    transition: transform 0.3s ease;
+  }
+
+  .a2img:hover {
+    transform: scale(1.02);
+  }
+
+  .material-symbols-outlined.a2icon {
+    color: var(--accent-blue);
+    font-size: 1.4rem;
+  }
+
+  /* --- Keyframe Animations --- */
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes geminiShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  @keyframes shimmerWave {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @keyframes pulseGlow {
+    from { transform: scale(0.95); opacity: 0.8; }
+    to { transform: scale(1.1); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="sparkle-icon"></div>
+    <span class="brand-title">Culpeper Herbalist AI</span>
+  </div>
+  <div class="status-badge">
+    <div class="status-dot"></div>
+    <span>Agent Online</span>
+  </div>
+</header>
+
+<div id="log"></div>
+
+<div class="input-container">
+  <div class="example-prompts">
+    <button type="button" class="prompt-chip" data-prompt="Show me a card for Lavender with its medicinal uses">
+      <span class="chip-icon">🌿</span> Show Lavender Card
+    </button>
+    <button type="button" class="prompt-chip" data-prompt="Consult Culpeper's Herbal for remedies for headache and cold">
+      <span class="chip-icon">🍃</span> Herbal Remedies for Headache
+    </button>
+    <button type="button" class="prompt-chip" data-prompt="Generate an image of Chamomile and list its health benefits">
+      <span class="chip-icon">🎨</span> Chamomile Image & Uses
+    </button>
+  </div>
+  <form id="form">
+    <input id="input" placeholder="Ask Culpeper Herbalist about remedies, plants, or images…" autocomplete="off" autofocus>
+    <button type="submit" aria-label="Send">
+      <span class="material-symbols-outlined">arrow_upward</span>
+    </button>
+  </form>
+</div>
+
+<script>
+const log = document.getElementById("log");
+const form = document.getElementById("form");
+const input = document.getElementById("input");
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function appendUserMessage(text) {
+  const m = el("div", "msg user");
+  const b = el("div", "bubble", text);
+  m.appendChild(b);
+  log.appendChild(m);
+  scrollToBottom();
+}
+
+function createAgentMessage() {
+  const m = el("div", "msg agent");
+  
+  const avatar = el("div", "avatar ai");
+  avatar.innerHTML = '<span class="material-symbols-outlined">auto_awesome</span>';
+  
+  const b = el("div", "bubble");
+  
+  const loader = el("div", "gemini-loader");
+  loader.innerHTML = '<div class="loader-sparkle"></div><div class="loader-shimmer"></div>';
+  b.appendChild(loader);
+
+  m.appendChild(avatar);
+  m.appendChild(b);
+  log.appendChild(m);
+  scrollToBottom();
+  return b;
+}
+
+function scrollToBottom() {
+  setTimeout(() => {
+    log.scrollTo({ top: log.scrollHeight, behavior: 'smooth' });
+  }, 50);
+}
+
+/* ----------------------------------------------------------------------------
+ * A2UI mini-renderer (v0.8 Basic Catalog subset).
+ * -------------------------------------------------------------------------- */
+
+function boundStr(v) {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v.literalString === "string") return v.literalString;
+  return "";
+}
+
+function childIds(props) {
+  const ids = [];
+  if (props && typeof props.child === "string") ids.push(props.child);
+  const ch = props && props.children;
+  if (ch && Array.isArray(ch.explicitList)) for (const c of ch.explicitList) if (typeof c === "string") ids.push(c);
+  return ids;
+}
+
+function iconName(n) { return String(n || "").replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/\s+/g, "_").toLowerCase(); }
+
+function buildNode(id, comps, seen) {
+  if (!id || seen.has(id)) return null;
+  seen.add(id);
+  const spec = comps[id];
+  if (!spec || typeof spec !== "object") return null;
+  const type = Object.keys(spec)[0];
+  const props = spec[type] || {};
+  const kids = () => childIds(props).map(cid => buildNode(cid, comps, seen)).filter(Boolean);
+
+  switch (type) {
+    case "Card": {
+      const d = el("div", "a2card"); kids().forEach(n => d.appendChild(n)); return d;
+    }
+    case "Column":
+    case "List": {
+      const horizontal = type === "List" && props.direction === "horizontal";
+      const d = el("div", horizontal ? "a2row" : "a2col"); kids().forEach(n => d.appendChild(n)); return d;
+    }
+    case "Row": {
+      const d = el("div", "a2row" + (props.distribution === "spaceBetween" ? " between" : ""));
+      kids().forEach(n => d.appendChild(n)); return d;
+    }
+    case "Text": {
+      const t = el("div", "a2text");
+      const hint = String(props.usageHint || "body").toLowerCase();
+      if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(hint)) t.classList.add("a2-" + hint);
+      else if (hint === "caption") t.classList.add("a2-caption");
+      t.textContent = boundStr(props.text);
+      return t;
+    }
+    case "Divider":
+      return el("hr", "a2divider");
+    case "Image": {
+      const src = boundStr(props.url || props.src);
+      if (!/^https?:\/\//i.test(src)) return null;
+      const img = el("img", "a2img"); img.src = src; img.alt = boundStr(props.alt) || ""; return img;
+    }
+    case "Icon": {
+      const s = el("span", "material-symbols-outlined a2icon"); s.textContent = iconName(boundStr(props.name) || props.name); return s;
+    }
+    default:
+      return null;
+  }
+}
+
+function renderSurface(messages, container) {
+  const comps = {};
+  const roots = [];
+  for (const m of messages) {
+    if (m.beginRendering && typeof m.beginRendering.root === "string") roots.push(m.beginRendering.root);
+    const su = m.surfaceUpdate;
+    if (su && Array.isArray(su.components)) for (const c of su.components) if (c && c.id && c.component) comps[c.id] = c.component;
+  }
+  let rootIds = roots.filter(r => comps[r]);
+  if (rootIds.length === 0) {
+    const referenced = new Set();
+    for (const id in comps) { const spec = comps[id]; childIds(spec[Object.keys(spec)[0]] || {}).forEach(c => referenced.add(c)); }
+    rootIds = Object.keys(comps).filter(id => !referenced.has(id));
+  }
+  let drew = false;
+  for (const rid of rootIds) { const node = buildNode(rid, comps, new Set()); if (node) { container.appendChild(node); drew = true; } }
+  return drew;
+}
+
+function flattenText(messages) {
+  const out = [];
+  for (const m of messages) {
+    const su = m.surfaceUpdate;
+    if (su && Array.isArray(su.components)) for (const c of su.components) if (c && c.component && c.component.Text) out.push(boundStr(c.component.Text.text));
+  }
+  return out.join("\n").trim();
+}
+
+function parseA2UIFromText(str) {
+  if (!str || typeof str !== "string") return null;
+  const match = str.match(/<(a2ui-json|a2a_datapart_json)>([\s\S]*?)<\/\1>/i);
+  let raw = match ? match[2] : str.trim();
+  if (raw.startsWith("```")) {
+    raw = raw.replace(/^```[a-z]*\n?/, "").replace(/```$/, "").trim();
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function renderReply(b, parts) {
+  b.textContent = "";
+  const texts = [];
+  const rawA2UI = [];
+
+  for (const p of parts) {
+    if (!p) continue;
+    if (p.kind === "a2ui" && p.data) {
+      rawA2UI.push(p.data);
+    } else if (p.kind === "text" || (!p.kind && p.text)) {
+      const textVal = p.text || "";
+      const parsed = parseA2UIFromText(textVal);
+      if (parsed) {
+        rawA2UI.push(parsed);
+      } else {
+        texts.push(textVal);
+      }
+    }
+  }
+
+  const normalized = [];
+  for (const item of rawA2UI) {
+    const list = Array.isArray(item) ? item : [item];
+    for (const obj of list) {
+      if (!obj || typeof obj !== "object") continue;
+      const dataObj = (obj.data && typeof obj.data === "object") ? obj.data : obj;
+      if (dataObj.beginRendering || dataObj.surfaceUpdate || dataObj.dataModelUpdate || dataObj.deleteSurface) {
+        normalized.push(dataObj);
+      } else if (dataObj.components || dataObj.surfaceId) {
+        const comps = dataObj.components || [];
+        const sId = dataObj.surfaceId || "surface1";
+        const rId = dataObj.root || (comps[0] ? comps[0].id : null);
+        if (rId) normalized.push({ beginRendering: { root: rId, surfaceId: sId } });
+        normalized.push({ surfaceUpdate: { surfaceId: sId, components: comps } });
+      }
+    }
+  }
+
+  const textStr = texts.join("\n").trim();
+  if (textStr) {
+    const textNode = el("div", null, textStr);
+    b.appendChild(textNode);
+  }
+
+  if (normalized.length) {
+    b.classList.add("rich");
+    if (!renderSurface(normalized, b)) {
+      b.appendChild(el("div", null, flattenText(normalized) || "(no card content)"));
+    }
+  }
+  
+  if (!b.childNodes.length) {
+    b.textContent = "(no response)";
+  }
+  
+  scrollToBottom();
+}
+
+form.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+  
+  appendUserMessage(text);
+  input.value = "";
+  
+  const b = createAgentMessage();
+  
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text })
+    });
+    const raw = await res.text();
+    let data;
+    try { data = JSON.parse(raw); }
+    catch { throw new Error(`Server returned non-JSON (HTTP ${res.status}). ${raw.slice(0, 300)}`); }
+    renderReply(b, data.parts || []);
+  } catch (e) {
+    b.textContent = "Error: " + e.message;
+  }
+});
+
+// Wire up clickable example prompt chips
+document.querySelectorAll(".prompt-chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    const promptText = chip.getAttribute("data-prompt");
+    if (promptText) {
+      input.value = promptText;
+      form.requestSubmit();
+    }
+  });
+});
+</script>
+</body>
+</html>
